@@ -18,6 +18,17 @@ namespace CRUDMahasiswaADO
         private void Form1_Load(object sender, EventArgs e)
         {
             ConnectDatabase();
+            cmbJK.Items.Add("");
+            cmbJK.Items.Add("L");
+            cmbJK.Items.Add("P");
+
+            dataGridView1.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridView1.MultiSelect = false;
+            dataGridView1.ReadOnly = true;
+            dataGridView1.AllowUserToAddRows = false;
+            dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            dataGridView1.CellClick += dataGridView1_CellContentClick;
         }
         private void ConnectDatabase()
         {
