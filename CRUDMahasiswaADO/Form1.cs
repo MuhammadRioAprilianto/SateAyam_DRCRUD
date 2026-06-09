@@ -96,20 +96,103 @@ namespace CRUDMahasiswaADO
 
         private void btnInsert_Click(object sender, EventArgs e)
         {
-            using (SqlCommand cmd = new SqlCommand("sp_InsertMahasiswa", conn))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@NIM", txtNIM.Text);
-                cmd.Parameters.AddWithValue("@Nama", txtNama.Text);
-                cmd.Parameters.AddWithValue("@JenisKelamin", cmbJK.Text);
-                cmd.Parameters.AddWithValue("@TanggalLahir", dtpTanggalLahir.Value.Date);
-                cmd.Parameters.AddWithValue("@Alamat", txtAlamat.Text);
-                cmd.Parameters.AddWithValue("@KodeProdi", txtKodeProdi.Text);
-                cmd.Parameters.AddWithValue("@TanggalDaftar", DateTime.Now);
+            SqlConnection conn =
+            new SqlConnection(connectionString);
 
-                conn.Close();
-                conn.Open();
+            conn.Open();
+
+            SqlTransaction trans =
+                conn.BeginTransaction();
+
+            try
+            {
+                SqlCommand cmd =
+                    new SqlCommand(
+                    "sp_InsertMahasiswa",
+                    conn,
+                    trans);
+
+                cmd.CommandType =
+                    CommandType.StoredProcedure;
+
+                cmd.Parameters.AddWithValue(
+                    "@NIM",
+                    txtNIM.Text);
+
+                cmd.Parameters.AddWithValue(
+                    "@Nama",
+                    txtNama.Text);
+
+                cmd.Parameters.AddWithValue(
+                    "@JenisKelamin",
+                    cmbJK.Text);
+
+                cmd.Parameters.AddWithValue(
+                    "@TanggalLahir",
+                    dtpTanggalLahir.Value.Date);
+
+                cmd.Parameters.AddWithValue(
+                    "@Alamat",
+                    txtAlamat.Text);
+
+                cmd.Parameters.AddWithValue(
+                    "@KodeProdi",
+                    txtKodeProdi.Text);
+
+                cmd.Parameters.AddWithValue(
+                    "@TanggalDaftar",
+                    DateTime.Now);
+
                 cmd.ExecuteNonQuery();
+
+                SqlCommand cmdLog =
+                    new SqlCommand(
+                    @"INSERT INTO LogAktivitas
+            (aktivitas, waktu)
+            VALUES
+            (@aktivitas,GETDATE())",
+                    conn,
+                    trans);
+
+                cmdLog.Parameters.AddWithValue(
+                    "@aktivitas",
+                    "INSERT MAHASISWA : " +
+                    txtNIM.Text);
+
+                cmdLog.ExecuteNonQuery();
+
+                trans.Commit();
+
+                MessageBox.Show(
+                    "Data berhasil disimpan!");
+
+                LoadData();
+            }
+            catch (SqlException ex)
+            {
+                trans.Rollback();
+
+                SimpanLog(
+                    "ROLLBACK INSERT : " +
+                    ex.Message);
+
+                MessageBox.Show(
+                    ex.Message);
+            }
+            catch (Exception ex)
+            {
+                trans.Rollback();
+
+                SimpanLog(
+                    "GENERAL ERROR : " +
+                    ex.Message);
+
+                MessageBox.Show(
+                    ex.Message);
+            }
+            finally
+            {
+                conn.Close();
             }
         }
 
@@ -242,21 +325,24 @@ namespace CRUDMahasiswaADO
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
+                using (SqlConnection conn =
+                    new SqlConnection(connectionString))
                 {
+                    string query =
+                    "UPDATE Mahasiswa SET Nama='" +
+                    txtNama.Text +
+                    "' WHERE NIM='" +
+                    txtNIM.Text + "'";
+
+                    SqlCommand cmd =
+                    new SqlCommand(query, conn);
+
                     conn.Open();
 
-                    string query =
-                        "UPDATE Mahasiswa SET Nama= 'HACKED' WHERE NIM='" + txtNIM.Text + "'";
+                    cmd.ExecuteNonQuery();
 
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        int result = cmd.ExecuteNonQuery();
-                        MessageBox.Show(result + " baris terupdate");
-                    }
+                    MessageBox.Show("Update berhasil");
                 }
-
-                LoadData();
             }
             catch (Exception ex)
             {
@@ -288,6 +374,22 @@ namespace CRUDMahasiswaADO
             catch (Exception ex)
             {
                 MessageBox.Show("Gagal menghitung total: " + ex.Message);
+            }
+        }
+
+        private void SimpanLog(string pesan)
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                string query = @"INSERT INTO LogError VALUES (GETDATE(), @pesan)";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@pesan", pesan);
+
+                    conn.Open();
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
     }
